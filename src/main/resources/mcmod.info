@@ -1,0 +1,16 @@
+[
+{
+  "modid": "particlemod",
+  "name": "Kopamed's Particle Mod",
+  "description": "Particle mod with more features than lunar's",
+  "version": "${version}",
+  "mcversion": "${mcversion}",
+  "url": "",
+  "updateUrl": "",
+  "authorList": ["Kopamed"],
+  "credits": "Labymod for having a shitty particle mod, inspiring me to make this",
+  "logoFile": "",
+  "screenshots": [],
+  "dependencies": []
+}
+]
