@@ -15,6 +15,7 @@ out
 
 # gradle
 build
+!build/libs/particlemod-1.0.jar
 .gradle
 
 # other
