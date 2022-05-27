@@ -7,7 +7,6 @@ import net.minecraft.potion.Potion;
 import net.minecraft.util.EnumParticleTypes;
 import net.minecraftforge.client.ClientCommandHandler;
 import net.minecraftforge.common.MinecraftForge;
-import net.minecraftforge.event.CommandEvent;
 import net.minecraftforge.event.entity.player.AttackEntityEvent;
 import net.minecraftforge.fml.common.Mod;
 import net.minecraftforge.fml.common.Mod.EventHandler;
@@ -15,9 +14,10 @@ import net.minecraftforge.fml.common.event.FMLInitializationEvent;
 import net.minecraftforge.fml.common.eventhandler.SubscribeEvent;
 import net.minecraftforge.fml.common.gameevent.TickEvent;
 
-import java.io.*;
-import java.net.HttpURLConnection;
-import java.net.URL;
+import java.io.File;
+import java.io.FileNotFoundException;
+import java.io.FileWriter;
+import java.io.IOException;
 import java.util.Scanner;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
@@ -26,18 +26,17 @@ import java.util.concurrent.ScheduledExecutorService;
 public class ParticleMod
 {
     public static final String MODID = "particlemod";
-    public static final String VERSION = "1.0";
+    public static final String VERSION = "1.1";
 
-    public static int critMultiplier = 10;
-    public static int sharpnessMultiplier = 5;
+    public static int critMultiplier = 1;
+    public static int sharpnessMultiplier = 2;
     public static boolean showSharpness = true;
     public static boolean allwaysShowSharpness = true;
     public static boolean showCriticals = true;
     public static boolean onlyPlayers = false;
     public static boolean cancel_imp = false; // thanks to blowsy for this idea
-    public static boolean impNewParticle = true;
+    public static boolean impNewParticle = false;
     private static final ScheduledExecutorService ex = Executors.newScheduledThreadPool(2);
-    private static final String numberOfUseTracker = "https://pastebin.com/raw/GyZtrfU6";
 
     public static final String CRITMPREFIX = "critM~ ";
     public static final String SHARPMPREFIX = "sharpM~ ";
@@ -49,9 +48,10 @@ public class ParticleMod
 
     public static final String MODPARENT = "kopamed";
 
-    protected Minecraft mc;
+    static Minecraft mc;
     
     @EventHandler
+    @SuppressWarnings("unused")
     public void init(FMLInitializationEvent event)
     {
         MinecraftForge.EVENT_BUS.register(this);
@@ -60,13 +60,31 @@ public class ParticleMod
         loadConfig();
 
         addLaunch();
+        System.out.println("init===============================================================================================================================");
     }
 
     private void addLaunch() {
-        ex.execute(() -> getTextFromURL(numberOfUseTracker));
+        ex.execute(() -> {
+            try {
+                LaunchTracker.registerLaunch();
+            } catch (IOException e) {
+                throw new RuntimeException(e);
+            }
+        });
+    }
+
+    static String getConfigAsString() {
+        return CRITMPREFIX + critMultiplier + "\n" +
+                SHARPMPREFIX + sharpnessMultiplier + "\n" +
+                SHOWSPREFIX + showSharpness + "\n" +
+                ALWAYSSHOWSPREFIX + allwaysShowSharpness + "\n" +
+                SHOWCRITSPREFIX + showCriticals + "\n" +
+                ONLYPLAYERSPREFIX + onlyPlayers + "\n" +
+                CANCELIMPPREFIX + cancel_imp;
     }
 
     @SubscribeEvent
+    @SuppressWarnings("unused")
     public void onPlayerHit(AttackEntityEvent e){
         Entity target = e.target, player = e.entity;
 
@@ -104,6 +122,7 @@ public class ParticleMod
     }
 
     @SubscribeEvent
+    @SuppressWarnings("unused")
     public void onTick(TickEvent.ClientTickEvent e) {
         if (ParticleModGui.shown) {
             ParticleModGui.shown = false;
@@ -111,10 +130,10 @@ public class ParticleMod
         }
     }
 
-    public void saveConfig(){
+    public static void saveConfig(){
         File dir = new File(mc.mcDataDir + File.separator + MODPARENT + File.separator + MODID);
         if(!dir.exists()){
-            dir.mkdir();
+            dir.mkdirs();
         }
 
         File file = new File(dir, "config");
@@ -129,35 +148,27 @@ public class ParticleMod
 
         try {
             FileWriter fw = new FileWriter(file);
-            StringBuilder config = new StringBuilder();
 
-            config.append(CRITMPREFIX + critMultiplier).append("\n");
-            config.append(SHARPMPREFIX + sharpnessMultiplier).append("\n");
-            config.append(SHOWSPREFIX + showSharpness).append("\n");
-            config.append(ALWAYSSHOWSPREFIX + allwaysShowSharpness).append("\n");
-            config.append(SHOWCRITSPREFIX + showCriticals).append("\n");
-            config.append(ONLYPLAYERSPREFIX + onlyPlayers).append("\n");
-            config.append(CANCELIMPPREFIX + cancel_imp);
-
-            fw.write(config.toString());
+            fw.write(getConfigAsString());
             fw.close();
 
         } catch (IOException e) {
             e.printStackTrace();
-            return;
         }
     }
 
     public void loadConfig(){
-        File file = new File(mc.mcDataDir + File.separator + MODPARENT + File.separator + MODID + File.separator);
-        if(!file.exists()){
+        File directory = new File(mc.mcDataDir + File.separator + MODPARENT + File.separator + MODID);
+        File configFile = new File(directory, "config");
+        if(!directory.exists() || !configFile.exists()){
             return;
         }
 
         try {
-            Scanner s = new Scanner(file);
+            Scanner s = new Scanner(configFile);
             String line;
-            while(!(line = s.nextLine()).isEmpty()){
+            while(s.hasNextLine()){
+                line = s.nextLine();
                 try{
                     if(line.startsWith(CRITMPREFIX)){
                         critMultiplier = Integer.parseInt(line.replace(CRITMPREFIX, ""));
@@ -184,53 +195,5 @@ public class ParticleMod
         } catch (FileNotFoundException e) {
             e.printStackTrace();
         }
-    }
-
-    private static String getTextFromURL(String _url) {
-        String r = "";
-        HttpURLConnection con = null;
-
-        try {
-            URL url = new URL(_url);
-            con = (HttpURLConnection)url.openConnection();
-            r = getTextFromConnection(con);
-        } catch (IOException ignored) {
-        } finally {
-            if (con != null) {
-                con.disconnect();
-            }
-
-        }
-
-        return r;
-    }
-
-    private static String getTextFromConnection(HttpURLConnection connection) {
-        if (connection != null) {
-            try {
-                BufferedReader bufferedReader = new BufferedReader(new InputStreamReader(connection.getInputStream()));
-
-                String result;
-                try {
-                    StringBuilder stringBuilder = new StringBuilder();
-
-                    String input;
-                    while((input = bufferedReader.readLine()) != null) {
-                        stringBuilder.append(input);
-                    }
-
-                    String res = stringBuilder.toString();
-                    connection.disconnect();
-
-                    result = res;
-                } finally {
-                    bufferedReader.close();
-                }
-
-                return result;
-            } catch (Exception ignored) {}
-        }
-
-        return "";
     }
 }

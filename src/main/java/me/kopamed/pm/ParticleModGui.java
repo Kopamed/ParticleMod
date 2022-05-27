@@ -4,9 +4,8 @@ import net.minecraft.client.gui.Gui;
 import net.minecraft.client.gui.GuiButton;
 import net.minecraft.client.gui.GuiScreen;
 import net.minecraft.client.gui.ScaledResolution;
-import net.minecraftforge.fml.client.config.GuiSlider;
 import net.minecraftforge.fml.client.config.GuiCheckBox;
-import org.lwjgl.opengl.GL11;
+import net.minecraftforge.fml.client.config.GuiSlider;
 
 import java.awt.*;
 
@@ -118,5 +117,10 @@ public class ParticleModGui extends GuiScreen {
         ParticleMod.critMultiplier = this.critical_bar.getValueInt();
         ParticleMod.sharpnessMultiplier = this.sharpness_bar.getValueInt();
         super.drawScreen(mouseX, mouseY, partialTicks);
+    }
+
+    @Override
+    public void onGuiClosed() {
+        ParticleMod.saveConfig();
     }
 }
